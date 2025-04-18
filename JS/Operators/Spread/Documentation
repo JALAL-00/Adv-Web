@@ -1,0 +1,10 @@
+The spread operator is used to "spread" or expand elements of an array, object, or string into individual elements. It is commonly used for:
+
+Copying arrays or objects.
+Merging arrays or objects.
+Passing elements of an array as individual arguments to a function.
+Use Cases:
+
+With Arrays: Expand elements of an array.
+With Objects: Expand properties of an object.
+With Function Calls: Pass array elements as individual arguments.
