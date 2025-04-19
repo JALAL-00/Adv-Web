@@ -1,0 +1,53 @@
+Use Case 1: Dynamic HTML Generation
+
+const items = ["Apple", "Banana", "Orange"];
+const html = `
+    <ul>
+        ${items.map(item => `<li>${item}</li>`).join("")}
+    </ul>
+`;
+
+console.log(html);
+// Output:
+// <ul>
+//     <li>Apple</li>
+//     <li>Banana</li>
+//     <li>Orange</li>
+// </ul>
+
+
+
+Use Case 2: SQL Query Building
+
+const table = "users";
+const columns = ["name", "age"];
+const query = `
+    SELECT ${columns.join(", ")}
+    FROM ${table}
+    WHERE age > ${18}
+`;
+
+console.log(query);
+// Output: SELECT name, age FROM users WHERE age > 18
+
+
+
+Use Case 3: Localized Strings
+const user = { name: "Alice", locale: "en" };
+const greetings = {
+    en: `Hello, ${user.name}!`,
+    fr: `Bonjour, ${user.name}!`
+};
+
+console.log(greetings[user.locale]); // Output: Hello, Alice!
+
+
+
+
+**Key Points**
+
+Template literals are enclosed by backticks (`).
+They support multi-line strings and string interpolation.
+Tagged templates allow advanced string processing.
+They are more readable and flexible than traditional string concatenation.
+
