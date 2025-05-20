@@ -5,13 +5,10 @@ import { Application } from './entities/application.entity';
 import { User } from '../auth/entities/user.entity';
 import { Job } from '../jobs/entities/job.entity';
 import { CreateApplicationDto } from './dto/create-application.dto';
-import * as nodemailer from 'nodemailer';
+import { EmailService } from '../common/email.service';
 
 @Injectable()
 export class ApplicationsService {
-  apply(createApplicationDto: CreateApplicationDto, user: any) {
-    throw new Error('Method not implemented.');
-  }
   constructor(
     @InjectRepository(Application)
     private applicationRepository: Repository<Application>,
@@ -19,6 +16,7 @@ export class ApplicationsService {
     private userRepository: Repository<User>,
     @InjectRepository(Job)
     private jobRepository: Repository<Job>,
+    private emailService: EmailService,
   ) {}
 
   async create(userId: number, jobId: number, resume: string, createApplicationDto: CreateApplicationDto): Promise<Application> {
@@ -53,19 +51,29 @@ export class ApplicationsService {
     });
   }
 
-  private async notifyRecruiter(recruiterEmail: string, jobTitle: string, candidateEmail: string): Promise<void> {
-    const transporter = nodemailer.createTransport({
-      service: 'Gmail',
-      auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_PASS,
-      },
+  async updateStatus(applicationId: number, status: string): Promise<Application> {
+    const application = await this.applicationRepository.findOne({
+      where: { id: applicationId },
+      relations: ['candidate', 'job'],
     });
+    if (!application) {
+      throw new NotFoundException('Application not found');
+    }
+    application.status = status;
+    const updatedApplication = await this.applicationRepository.save(application);
+    await this.emailService.sendMail(
+      application.candidate.email,
+      `Application Status Update for ${application.job.title}`,
+      `Your application for "${application.job.title}" has been updated to "${status}".`,
+    );
+    return updatedApplication;
+  }
 
-    await transporter.sendMail({
-      to: recruiterEmail,
-      subject: `New Application for ${jobTitle}`,
-      text: `A candidate (${candidateEmail}) has applied for your job "${jobTitle}".`,
-    });
+  private async notifyRecruiter(recruiterEmail: string, jobTitle: string, candidateEmail: string): Promise<void> {
+    await this.emailService.sendMail(
+      recruiterEmail,
+      `New Application for ${jobTitle}`,
+      `A candidate (${candidateEmail}) has applied for your job "${jobTitle}".`,
+    );
   }
 }

@@ -21,6 +21,7 @@ const job_entity_1 = require("../jobs/entities/job.entity");
 const application_entity_1 = require("../applications/entities/application.entity");
 const message_entity_1 = require("../recruiter/entities/message.entity");
 const candidate_profile_entity_1 = require("../candidate/entities/candidate-profile.entity");
+const recruiter_profile_entity_1 = require("../recruiter/entities/recruiter-profile.entity");
 const bcrypt = require("bcrypt");
 const jwt_1 = require("@nestjs/jwt");
 const nodemailer = require("nodemailer");
@@ -30,23 +31,41 @@ let AuthService = class AuthService {
     applicationRepository;
     messageRepository;
     profileRepository;
+    recruiterProfileRepository;
     jwtService;
-    blacklistedTokenRepository;
-    constructor(userRepository, jobRepository, applicationRepository, messageRepository, profileRepository, jwtService) {
+    blockedEmailDomains = [
+        'example.com',
+        'mailinator.com',
+        'tempmail.com',
+        'guerrillamail.com',
+        '10minutemail.com',
+    ];
+    constructor(userRepository, jobRepository, applicationRepository, messageRepository, profileRepository, recruiterProfileRepository, jwtService) {
         this.userRepository = userRepository;
         this.jobRepository = jobRepository;
         this.applicationRepository = applicationRepository;
         this.messageRepository = messageRepository;
         this.profileRepository = profileRepository;
+        this.recruiterProfileRepository = recruiterProfileRepository;
         this.jwtService = jwtService;
     }
     async register(registerDto) {
         const { email, password, firstName, lastName, companyName } = registerDto;
-        const existingUser = await this.userRepository.findOne({ where: { email } });
+        const emailDomain = email.split('@')[1].toLowerCase();
+        if (this.blockedEmailDomains.includes(emailDomain)) {
+            throw new common_1.BadRequestException('Email domain is not allowed');
+        }
+        const existingUser = await this.userRepository
+            .createQueryBuilder('user')
+            .where('LOWER(user.email) = LOWER(:email)', { email })
+            .getOne();
         if (existingUser) {
             throw new common_1.BadRequestException('Email already exists');
         }
-        const hashedPassword = await bcrypt.hash(password, 10);
+        if (!password || password.trim().length < 6) {
+            throw new common_1.BadRequestException('Password must be at least 6 characters');
+        }
+        const hashedPassword = await bcrypt.hash(password.trim(), 10);
         const role = companyName ? user_entity_1.UserRole.RECRUITER : user_entity_1.UserRole.CANDIDATE;
         const user = this.userRepository.create({
             email,
@@ -56,22 +75,51 @@ let AuthService = class AuthService {
             companyName,
             role,
         });
-        return this.userRepository.save(user);
-    }
-    async login(loginDto) {
-        const { email, password } = loginDto;
-        const user = await this.userRepository.findOne({ where: { email } });
-        if (!user || !(await bcrypt.compare(password, user.password))) {
-            throw new common_1.BadRequestException('Invalid credentials');
+        const savedUser = await this.userRepository.save(user);
+        if (role === user_entity_1.UserRole.CANDIDATE) {
+            const candidateProfile = this.profileRepository.create({
+                user: savedUser,
+                isVisible: true,
+            });
+            await this.profileRepository.save(candidateProfile);
         }
-        const payload = { sub: user.id, email: user.email, role: user.role };
+        else if (role === user_entity_1.UserRole.RECRUITER) {
+            const recruiterProfile = this.recruiterProfileRepository.create({
+                user: savedUser,
+                companyName: savedUser.companyName,
+                firstName: savedUser.firstName,
+                lastName: savedUser.lastName,
+            });
+            await this.recruiterProfileRepository.save(recruiterProfile);
+        }
+        return savedUser;
+    }
+    async validateUser(email, password) {
+        const user = await this.userRepository
+            .createQueryBuilder('user')
+            .where('LOWER(user.email) = LOWER(:email)', { email })
+            .getOne();
+        if (!user) {
+            return null;
+        }
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return null;
+        }
+        return user;
+    }
+    async login(user) {
+        const payload = { email: user.email, sub: user.id, role: user.role };
         return {
             access_token: this.jwtService.sign(payload),
         };
     }
     async forgotPassword(forgotPasswordDto) {
         const { email } = forgotPasswordDto;
-        const user = await this.userRepository.findOne({ where: { email } });
+        const user = await this.userRepository
+            .createQueryBuilder('user')
+            .where('LOWER(user.email) = LOWER(:email)', { email })
+            .getOne();
         if (!user) {
             throw new common_1.NotFoundException('User not found');
         }
@@ -87,11 +135,17 @@ let AuthService = class AuthService {
                 pass: process.env.GMAIL_PASS,
             },
         });
-        await transporter.sendMail({
-            to: email,
-            subject: 'Password Reset OTP',
-            text: `Your OTP for password reset is: ${token}. It expires in 5 minutes.`,
-        });
+        try {
+            await transporter.sendMail({
+                to: email,
+                subject: 'NexHire Password Reset OTP',
+                text: `Your OTP for password reset is: ${token}. It expires in 5 minutes.`,
+            });
+        }
+        catch (error) {
+            throw new common_1.BadRequestException('Failed to send OTP. Please try again.');
+        }
+        return { message: 'OTP sent to your email' };
     }
     async resetPassword(resetPasswordDto) {
         const { token, password } = resetPasswordDto;
@@ -104,26 +158,19 @@ let AuthService = class AuthService {
         if (!user) {
             throw new common_1.BadRequestException('Invalid or expired token');
         }
-        user.password = await bcrypt.hash(password, 10);
+        user.password = await bcrypt.hash(password.trim(), 10);
         user.resetPasswordToken = null;
         user.resetPasswordExpires = null;
         await this.userRepository.save(user);
+        return { message: 'Password reset successfully' };
     }
     async logout(token) {
-        const decoded = this.jwtService.decode(token);
-        if (!decoded) {
-            throw new common_1.BadRequestException('Invalid token');
-        }
-        const blacklistedToken = this.blacklistedTokenRepository.create({
-            token,
-            expiresAt: new Date(decoded.exp * 1000),
-        });
-        await this.blacklistedTokenRepository.save(blacklistedToken);
+        return;
     }
     async deleteAccount(userId) {
         const user = await this.userRepository.findOne({
             where: { id: userId },
-            relations: ['candidateProfile', 'jobs', 'applications', 'sentMessages', 'receivedMessages'],
+            relations: ['candidateProfile', 'recruiterProfile', 'jobs', 'applications', 'sentMessages', 'receivedMessages'],
         });
         if (!user) {
             throw new common_1.NotFoundException('User not found');
@@ -147,7 +194,11 @@ let AuthService = class AuthService {
         if (user.candidateProfile) {
             await this.profileRepository.delete({ user: { id: userId } });
         }
+        if (user.recruiterProfile) {
+            await this.recruiterProfileRepository.delete({ user: { id: userId } });
+        }
         await this.userRepository.delete(userId);
+        return { message: 'Account deleted successfully' };
     }
 };
 exports.AuthService = AuthService;
@@ -158,7 +209,9 @@ exports.AuthService = AuthService = __decorate([
     __param(2, (0, typeorm_1.InjectRepository)(application_entity_1.Application)),
     __param(3, (0, typeorm_1.InjectRepository)(message_entity_1.Message)),
     __param(4, (0, typeorm_1.InjectRepository)(candidate_profile_entity_1.CandidateProfile)),
+    __param(5, (0, typeorm_1.InjectRepository)(recruiter_profile_entity_1.RecruiterProfile)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,

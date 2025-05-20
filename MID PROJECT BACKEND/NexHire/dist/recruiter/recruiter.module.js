@@ -9,21 +9,35 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RecruiterModule = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
-const user_entity_1 = require("../auth/entities/user.entity");
-const job_entity_1 = require("../jobs/entities/job.entity");
-const application_entity_1 = require("../applications/entities/application.entity");
-const message_entity_1 = require("./entities/message.entity");
-const candidate_profile_entity_1 = require("../candidate/entities/candidate-profile.entity");
 const recruiter_controller_1 = require("./recruiter.controller");
 const recruiter_service_1 = require("./recruiter.service");
+const job_entity_1 = require("../jobs/entities/job.entity");
+const user_entity_1 = require("../auth/entities/user.entity");
+const message_entity_1 = require("./entities/message.entity");
+const email_service_1 = require("../common/email.service");
+const applications_service_1 = require("../applications/applications.service");
+const application_entity_1 = require("../applications/entities/application.entity");
+const screening_result_entity_1 = require("../screening/entities/screening-result.entity");
+const candidate_profile_entity_1 = require("../candidate/entities/candidate-profile.entity");
+const recruiter_profile_entity_1 = require("./entities/recruiter-profile.entity");
 let RecruiterModule = class RecruiterModule {
 };
 exports.RecruiterModule = RecruiterModule;
 exports.RecruiterModule = RecruiterModule = __decorate([
     (0, common_1.Module)({
-        imports: [typeorm_1.TypeOrmModule.forFeature([user_entity_1.User, job_entity_1.Job, application_entity_1.Application, message_entity_1.Message, candidate_profile_entity_1.CandidateProfile])],
+        imports: [
+            typeorm_1.TypeOrmModule.forFeature([
+                job_entity_1.Job,
+                user_entity_1.User,
+                message_entity_1.Message,
+                application_entity_1.Application,
+                screening_result_entity_1.ScreeningResult,
+                candidate_profile_entity_1.CandidateProfile,
+                recruiter_profile_entity_1.RecruiterProfile,
+            ]),
+        ],
         controllers: [recruiter_controller_1.RecruiterController],
-        providers: [recruiter_service_1.RecruiterService],
+        providers: [recruiter_service_1.RecruiterService, email_service_1.EmailService, applications_service_1.ApplicationsService],
     })
 ], RecruiterModule);
 //# sourceMappingURL=recruiter.module.js.map

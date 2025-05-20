@@ -22,16 +22,23 @@ const reset_password_dto_1 = require("./dto/reset-password.dto");
 const jwt_auth_guard_1 = require("./guards/jwt-auth.guard");
 const role_guard_1 = require("./guards/role.guard");
 const user_entity_1 = require("./entities/user.entity");
+const common_2 = require("@nestjs/common");
 let AuthController = class AuthController {
     authService;
     constructor(authService) {
         this.authService = authService;
     }
     async register(registerDto) {
-        return this.authService.register(registerDto);
+        const user = await this.authService.register(registerDto);
+        const { password, ...safeUser } = user;
+        return safeUser;
     }
     async login(loginDto) {
-        return this.authService.login(loginDto);
+        const user = await this.authService.validateUser(loginDto.email, loginDto.password);
+        if (!user) {
+            throw new common_2.BadRequestException('Invalid credentials');
+        }
+        return this.authService.login(user);
     }
     async forgotPassword(forgotPasswordDto) {
         return this.authService.forgotPassword(forgotPasswordDto);
@@ -39,15 +46,12 @@ let AuthController = class AuthController {
     async resetPassword(resetPasswordDto) {
         return this.authService.resetPassword(resetPasswordDto);
     }
-    async logout(req) {
-        const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) {
-            throw new common_1.BadRequestException('No token provided');
-        }
+    async logout(token) {
         await this.authService.logout(token);
+        return { message: 'Logout successfully' };
     }
     async deleteAccount(req) {
-        await this.authService.deleteAccount(req.user.id);
+        return this.authService.deleteAccount(req.user.id);
     }
 };
 exports.AuthController = AuthController;
@@ -84,18 +88,17 @@ __decorate([
 ], AuthController.prototype, "resetPassword", null);
 __decorate([
     (0, common_1.Post)('logout'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.HttpCode)(204),
-    __param(0, (0, common_1.Request)()),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Body)('token')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "logout", null);
 __decorate([
     (0, common_1.Delete)('account'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
     (0, common_1.SetMetadata)('role', [user_entity_1.UserRole.RECRUITER, user_entity_1.UserRole.CANDIDATE]),
-    (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
     __param(0, (0, common_1.Req)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),

@@ -27,8 +27,8 @@ let JobsController = class JobsController {
 };
 exports.JobsController = JobsController;
 __decorate([
-    (0, common_1.Get)(),
-    __param(0, (0, common_1.Query)()),
+    (0, common_1.Post)(),
+    __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [list_jobs_dto_1.ListJobsDto]),
     __metadata("design:returntype", void 0)

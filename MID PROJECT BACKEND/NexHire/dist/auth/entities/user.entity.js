@@ -16,6 +16,7 @@ const job_entity_1 = require("../../jobs/entities/job.entity");
 const application_entity_1 = require("../../applications/entities/application.entity");
 const message_entity_1 = require("../../recruiter/entities/message.entity");
 const scraped_job_entity_1 = require("../../scraper/entities/scraped-job.entity");
+const recruiter_profile_entity_1 = require("../../recruiter/entities/recruiter-profile.entity");
 var UserRole;
 (function (UserRole) {
     UserRole["RECRUITER"] = "recruiter";
@@ -28,18 +29,18 @@ let User = class User {
     firstName;
     lastName;
     companyName;
-    companyWebsite;
     phone;
     role;
     resetPasswordToken;
     resetPasswordExpires;
+    resume;
     candidateProfile;
+    recruiterProfile;
     jobs;
     applications;
     sentMessages;
     receivedMessages;
     scrapedJobs;
-    resume;
 };
 exports.User = User;
 __decorate([
@@ -69,10 +70,6 @@ __decorate([
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
-], User.prototype, "companyWebsite", void 0);
-__decorate([
-    (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", String)
 ], User.prototype, "phone", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: 'enum', enum: UserRole }),
@@ -87,9 +84,17 @@ __decorate([
     __metadata("design:type", Object)
 ], User.prototype, "resetPasswordExpires", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], User.prototype, "resume", void 0);
+__decorate([
     (0, typeorm_1.OneToOne)(() => candidate_profile_entity_1.CandidateProfile, (profile) => profile.user, { cascade: true }),
     __metadata("design:type", candidate_profile_entity_1.CandidateProfile)
 ], User.prototype, "candidateProfile", void 0);
+__decorate([
+    (0, typeorm_1.OneToOne)(() => recruiter_profile_entity_1.RecruiterProfile, (recruiterProfile) => recruiterProfile.user, { cascade: true }),
+    __metadata("design:type", recruiter_profile_entity_1.RecruiterProfile)
+], User.prototype, "recruiterProfile", void 0);
 __decorate([
     (0, typeorm_1.OneToMany)(() => job_entity_1.Job, (job) => job.recruiter, { cascade: true }),
     __metadata("design:type", Array)

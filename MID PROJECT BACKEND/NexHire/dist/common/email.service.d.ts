@@ -1,6 +1,8 @@
+import { ConfigService } from '@nestjs/config';
 export declare class EmailService {
+    private configService;
     private transporter;
-    constructor();
+    constructor(configService: ConfigService);
     sendMail(to: string, subject: string, text: string): Promise<void>;
     sendNewProjectNotification(to: string, project: {
         title: string;

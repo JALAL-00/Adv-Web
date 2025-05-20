@@ -21,6 +21,7 @@ const user_entity_1 = require("../auth/entities/user.entity");
 const job_entity_1 = require("../jobs/entities/job.entity");
 const applications_service_1 = require("../applications/applications.service");
 const jobs_service_1 = require("../jobs/jobs.service");
+const fs = require("fs/promises");
 let CandidateService = class CandidateService {
     profileRepository;
     userRepository;
@@ -49,23 +50,55 @@ let CandidateService = class CandidateService {
         return this.profileRepository.save(profile);
     }
     async uploadResume(userId, resumePath) {
-        const user = await this.userRepository.findOne({ where: { id: userId } });
-        if (!user)
-            throw new common_1.NotFoundException('User not found');
-        user.resume = resumePath;
-        return this.userRepository.save(user);
+        let profile = await this.profileRepository.findOne({ where: { user: { id: userId } } });
+        if (!profile) {
+            const user = await this.userRepository.findOne({ where: { id: userId } });
+            if (!user) {
+                throw new common_1.NotFoundException('User not found');
+            }
+            profile = this.profileRepository.create({ user, resume: resumePath });
+        }
+        else {
+            if (profile.resume) {
+                try {
+                    await fs.unlink(profile.resume);
+                }
+                catch (error) {
+                    console.error(`Failed to delete old resume at ${profile.resume}: ${error.message}`);
+                }
+            }
+            profile.resume = resumePath;
+        }
+        return this.profileRepository.save(profile);
+    }
+    async deleteResume(userId) {
+        const profile = await this.profileRepository.findOne({ where: { user: { id: userId } } });
+        if (!profile) {
+            throw new common_1.NotFoundException('Profile not found');
+        }
+        if (!profile.resume) {
+            throw new common_1.BadRequestException('No resume to delete');
+        }
+        try {
+            await fs.unlink(profile.resume);
+        }
+        catch (error) {
+            console.error(`Failed to delete resume at ${profile.resume}: ${error.message}`);
+            throw new common_1.BadRequestException('Failed to delete resume file');
+        }
+        profile.resume = '';
+        return this.profileRepository.save(profile);
     }
     async searchJobs(searchJobsDto) {
         console.log('Simulating web scraping for jobs...');
         return this.jobsService.findAll(searchJobsDto);
     }
-    async applyJob(userId, jobId, applyJobDto) {
+    async applyJob(userId, applyJobDto) {
         const profile = await this.profileRepository.findOne({ where: { user: { id: userId } } });
         if (!profile || !profile.resume) {
             throw new common_1.BadRequestException('Profile or resume not found');
         }
-        const applicationDto = { ...applyJobDto, jobId };
-        return this.applicationsService.create(userId, jobId, profile.resume, applicationDto);
+        return this.applicationsService.create(userId, applyJobDto.jobId, profile.resume, applyJobDto);
     }
     async getProfile(userId) {
         const profile = await this.profileRepository.findOne({ where: { user: { id: userId } }, relations: ['user'] });

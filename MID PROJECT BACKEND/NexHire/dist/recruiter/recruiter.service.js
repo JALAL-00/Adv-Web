@@ -16,46 +16,63 @@ exports.RecruiterService = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
-const user_entity_1 = require("../auth/entities/user.entity");
 const job_entity_1 = require("../jobs/entities/job.entity");
-const application_entity_1 = require("../applications/entities/application.entity");
+const user_entity_1 = require("../auth/entities/user.entity");
 const message_entity_1 = require("./entities/message.entity");
-const nodemailer = require("nodemailer");
+const email_service_1 = require("../common/email.service");
+const applications_service_1 = require("../applications/applications.service");
+const screening_result_entity_1 = require("../screening/entities/screening-result.entity");
+const candidate_profile_entity_1 = require("../candidate/entities/candidate-profile.entity");
+const recruiter_profile_entity_1 = require("./entities/recruiter-profile.entity");
 let RecruiterService = class RecruiterService {
-    userRepository;
     jobRepository;
-    applicationRepository;
+    userRepository;
     messageRepository;
-    transporter;
-    constructor(userRepository, jobRepository, applicationRepository, messageRepository) {
-        this.userRepository = userRepository;
+    candidateProfileRepository;
+    screeningResultRepository;
+    recruiterProfileRepository;
+    emailService;
+    applicationsService;
+    constructor(jobRepository, userRepository, messageRepository, candidateProfileRepository, screeningResultRepository, recruiterProfileRepository, emailService, applicationsService) {
         this.jobRepository = jobRepository;
-        this.applicationRepository = applicationRepository;
+        this.userRepository = userRepository;
         this.messageRepository = messageRepository;
-        this.transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: 587,
-            secure: false,
-            auth: {
-                user: process.env.GMAIL_USER,
-                pass: process.env.GMAIL_PASS,
-            },
+        this.candidateProfileRepository = candidateProfileRepository;
+        this.screeningResultRepository = screeningResultRepository;
+        this.recruiterProfileRepository = recruiterProfileRepository;
+        this.emailService = emailService;
+        this.applicationsService = applicationsService;
+    }
+    async getProfile(userId) {
+        const profile = await this.recruiterProfileRepository.findOne({
+            where: { user: { id: userId } },
+            relations: ['user'],
         });
+        if (!profile) {
+            throw new common_1.NotFoundException('Profile not found');
+        }
+        return profile;
     }
     async updateProfile(userId, updateProfileDto) {
-        const user = await this.userRepository.findOne({ where: { id: userId } });
-        if (!user) {
-            throw new common_1.NotFoundException('User not found');
+        let profile = await this.recruiterProfileRepository.findOne({ where: { user: { id: userId } } });
+        if (!profile) {
+            const user = await this.userRepository.findOne({ where: { id: userId } });
+            if (!user) {
+                throw new common_1.NotFoundException('User not found');
+            }
+            profile = this.recruiterProfileRepository.create({ user, ...updateProfileDto });
         }
-        Object.assign(user, updateProfileDto);
-        return this.userRepository.save(user);
+        else {
+            Object.assign(profile, updateProfileDto);
+        }
+        return this.recruiterProfileRepository.save(profile);
     }
     async createJob(userId, createJobDto) {
-        const user = await this.userRepository.findOne({ where: { id: userId } });
-        if (!user) {
-            throw new common_1.NotFoundException('User not found');
+        const recruiter = await this.userRepository.findOne({ where: { id: userId } });
+        if (!recruiter) {
+            throw new common_1.NotFoundException('Recruiter not found');
         }
-        const job = this.jobRepository.create({ ...createJobDto, recruiter: user });
+        const job = this.jobRepository.create({ ...createJobDto, recruiter });
         const savedJob = await this.jobRepository.save(job);
         await this.notifyCandidates(savedJob);
         return savedJob;
@@ -65,17 +82,18 @@ let RecruiterService = class RecruiterService {
         if (!job) {
             throw new common_1.NotFoundException('Job not found or not authorized');
         }
-        Object.assign(job, updateJobDto);
-        const updatedJob = await this.jobRepository.save(job);
-        await this.notifyCandidates(updatedJob);
-        return updatedJob;
+        const { jobId: _, ...updateData } = updateJobDto;
+        Object.assign(job, updateData);
+        return this.jobRepository.save(job);
     }
     async deleteJob(userId, jobId) {
         const job = await this.jobRepository.findOne({ where: { id: jobId, recruiter: { id: userId } } });
         if (!job) {
             throw new common_1.NotFoundException('Job not found or not authorized');
         }
+        await this.screeningResultRepository.delete({ job: { id: jobId } });
         await this.jobRepository.remove(job);
+        return { message: 'Job deleted successfully' };
     }
     async listJobs(userId) {
         return this.jobRepository.find({ where: { recruiter: { id: userId } } });
@@ -85,16 +103,17 @@ let RecruiterService = class RecruiterService {
         if (!job) {
             throw new common_1.NotFoundException('Job not found or not authorized');
         }
-        return this.applicationRepository.find({ where: { job: { id: jobId } }, relations: ['candidate'] });
+        return this.applicationsService.getAllApplications(userId);
     }
     async searchCandidates(searchCandidateDto) {
-        const { title, skills, experience, location } = searchCandidateDto;
-        return this.userRepository.find({
+        const { title, skills, location } = searchCandidateDto;
+        return this.candidateProfileRepository.find({
             where: {
-                role: user_entity_1.UserRole.CANDIDATE,
                 ...(title && { firstName: (0, typeorm_2.Like)(`%${title}%`) }),
+                ...(skills && { skills: (0, typeorm_2.Like)(`%${skills}%`) }),
                 ...(location && { phone: (0, typeorm_2.Like)(`%${location}%`) }),
             },
+            relations: ['user'],
         });
     }
     async sendMessage(userId, sendMessageDto) {
@@ -108,59 +127,34 @@ let RecruiterService = class RecruiterService {
         await this.sendEmailNotification(receiver.email, 'New Message', `You received a message: ${content}`);
         return this.messageRepository.save(message);
     }
-    async notifyCandidates(job) {
-        console.log('Notifying candidates for job:', job.title, 'Skills:', job.skills);
-        const candidates = await this.userRepository.find({
-            where: { role: user_entity_1.UserRole.CANDIDATE },
-        });
-        console.log('Found candidates:', candidates.length, candidates.map(c => c.email));
-        if (candidates.length === 0) {
-            console.log('No candidates found to notify');
-            return;
-        }
-        for (const candidate of candidates) {
-            console.log(`Sending email to: ${candidate.email}`);
-            try {
-                await this.transporter.sendMail({
-                    from: process.env.GMAIL_USER,
-                    to: candidate.email,
-                    subject: `New Job Opportunity: ${job.title}`,
-                    text: `A new job "${job.title}" has been posted/updated. Location: ${job.location}, Skills: ${job.skills?.join(', ')}. Apply now!`,
-                });
-                console.log(`Email sent to ${candidate.email}`);
-            }
-            catch (error) {
-                console.error(`Failed to send email to ${candidate.email}:`, error);
-            }
-        }
+    async sendEmailNotification(email, subject, message) {
+        console.log(`Sending email notification to: ${email}`);
+        await this.emailService.sendMail(email, subject, message);
+        console.log(`Email notification sent to ${email}`);
     }
-    async sendEmailNotification(to, subject, text) {
-        console.log(`Sending email notification to: ${to}`);
-        try {
-            await this.transporter.sendMail({
-                from: process.env.GMAIL_USER,
-                to,
-                subject,
-                text,
-            });
-            console.log(`Email notification sent to ${to}`);
-        }
-        catch (error) {
-            console.error(`Failed to send email notification to ${to}:`, error);
-            throw error;
+    async notifyCandidates(job) {
+        const candidates = await this.userRepository.find({ where: { role: user_entity_1.UserRole.CANDIDATE } });
+        for (const candidate of candidates) {
+            await this.sendEmailNotification(candidate.email, `New Job Opportunity: ${job.title}`, `A new job "${job.title}" has been posted. Location: ${job.location}, Salary: ${job.salary}.`);
         }
     }
 };
 exports.RecruiterService = RecruiterService;
 exports.RecruiterService = RecruiterService = __decorate([
     (0, common_1.Injectable)(),
-    __param(0, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
-    __param(1, (0, typeorm_1.InjectRepository)(job_entity_1.Job)),
-    __param(2, (0, typeorm_1.InjectRepository)(application_entity_1.Application)),
-    __param(3, (0, typeorm_1.InjectRepository)(message_entity_1.Message)),
+    __param(0, (0, typeorm_1.InjectRepository)(job_entity_1.Job)),
+    __param(1, (0, typeorm_1.InjectRepository)(user_entity_1.User)),
+    __param(2, (0, typeorm_1.InjectRepository)(message_entity_1.Message)),
+    __param(3, (0, typeorm_1.InjectRepository)(candidate_profile_entity_1.CandidateProfile)),
+    __param(4, (0, typeorm_1.InjectRepository)(screening_result_entity_1.ScreeningResult)),
+    __param(5, (0, typeorm_1.InjectRepository)(recruiter_profile_entity_1.RecruiterProfile)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
-        typeorm_2.Repository])
+        typeorm_2.Repository,
+        typeorm_2.Repository,
+        typeorm_2.Repository,
+        email_service_1.EmailService,
+        applications_service_1.ApplicationsService])
 ], RecruiterService);
 //# sourceMappingURL=recruiter.service.js.map

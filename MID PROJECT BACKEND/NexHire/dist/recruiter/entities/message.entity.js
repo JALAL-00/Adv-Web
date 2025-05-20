@@ -37,7 +37,7 @@ __decorate([
     __metadata("design:type", user_entity_1.User)
 ], Message.prototype, "receiver", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' }),
     __metadata("design:type", Date)
 ], Message.prototype, "createdAt", void 0);
 exports.Message = Message = __decorate([

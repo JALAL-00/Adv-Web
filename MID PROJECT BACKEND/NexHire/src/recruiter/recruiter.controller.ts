@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Req, HttpCode, HttpStatus, SetMetadata } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, UseGuards, Req, HttpCode, HttpStatus, SetMetadata, Param } from '@nestjs/common';
 import { RecruiterService } from './recruiter.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { CreateJobDto } from './dto/create-job.dto';
 import { UpdateJobDto } from './dto/update-job.dto';
+import { DeleteJobDto } from './dto/delete-job.dto';
 import { SearchCandidateDto } from './dto/search-candidate.dto';
 import { SendMessageDto } from './dto/send-message.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -15,6 +16,11 @@ import { UserRole } from '../auth/entities/user.entity';
 export class RecruiterController {
   constructor(private recruiterService: RecruiterService) {}
 
+  @Get('profile')
+  getProfile(@Req() req) {
+    return this.recruiterService.getProfile(req.user.id);
+  }
+
   @Patch('profile')
   updateProfile(@Req() req, @Body() updateProfileDto: UpdateProfileDto) {
     return this.recruiterService.updateProfile(req.user.id, updateProfileDto);
@@ -25,15 +31,14 @@ export class RecruiterController {
     return this.recruiterService.createJob(req.user.id, createJobDto);
   }
 
-  @Patch('jobs/:id')
-  updateJob(@Req() req, @Param('id') id: string, @Body() updateJobDto: UpdateJobDto) {
-    return this.recruiterService.updateJob(req.user.id, +id, updateJobDto);
+  @Patch('jobs')
+  updateJob(@Req() req, @Body() updateJobDto: UpdateJobDto) {
+    return this.recruiterService.updateJob(req.user.id, updateJobDto.jobId, updateJobDto);
   }
 
-  @Delete('jobs/:id')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  deleteJob(@Req() req, @Param('id') id: string) {
-    return this.recruiterService.deleteJob(req.user.id, +id);
+  @Delete('jobs')
+  deleteJob(@Req() req, @Body() deleteJobDto: DeleteJobDto) {
+    return this.recruiterService.deleteJob(req.user.id, deleteJobDto.jobId);
   }
 
   @Get('jobs')
@@ -47,7 +52,7 @@ export class RecruiterController {
   }
 
   @Post('search-candidates')
-  @HttpCode(HttpStatus.OK) // Changed to 200 OK
+  @HttpCode(HttpStatus.OK)
   searchCandidates(@Body() searchCandidateDto: SearchCandidateDto) {
     return this.recruiterService.searchCandidates(searchCandidateDto);
   }

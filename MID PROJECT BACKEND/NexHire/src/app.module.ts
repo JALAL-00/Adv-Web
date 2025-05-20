@@ -11,6 +11,7 @@ import { CandidateModule } from './candidate/candidate.module';
 import { ScraperModule } from './scraper/scraper.module';
 import { ScreeningModule } from './screening/screening.module';
 import { EmailService } from './common/email.service';
+import { CommonModule } from './common/common.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { EmailService } from './common/email.service';
     ApplicationsModule,
     ScraperModule,
     ScreeningModule,
+    CommonModule,
   ],
   controllers: [AppController],
   providers: [AppService, EmailService],

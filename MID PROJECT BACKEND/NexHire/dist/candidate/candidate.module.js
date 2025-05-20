@@ -9,14 +9,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.CandidateModule = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
+const candidate_controller_1 = require("./candidate.controller");
+const candidate_service_1 = require("./candidate.service");
 const candidate_profile_entity_1 = require("./entities/candidate-profile.entity");
 const user_entity_1 = require("../auth/entities/user.entity");
 const job_entity_1 = require("../jobs/entities/job.entity");
-const candidate_controller_1 = require("./candidate.controller");
-const candidate_service_1 = require("./candidate.service");
 const applications_service_1 = require("../applications/applications.service");
-const jobs_service_1 = require("../jobs/jobs.service");
 const application_entity_1 = require("../applications/entities/application.entity");
+const jobs_service_1 = require("../jobs/jobs.service");
+const email_service_1 = require("../common/email.service");
 let CandidateModule = class CandidateModule {
 };
 exports.CandidateModule = CandidateModule;
@@ -24,7 +25,7 @@ exports.CandidateModule = CandidateModule = __decorate([
     (0, common_1.Module)({
         imports: [typeorm_1.TypeOrmModule.forFeature([candidate_profile_entity_1.CandidateProfile, user_entity_1.User, job_entity_1.Job, application_entity_1.Application])],
         controllers: [candidate_controller_1.CandidateController],
-        providers: [candidate_service_1.CandidateService, applications_service_1.ApplicationsService, jobs_service_1.JobsService],
+        providers: [candidate_service_1.CandidateService, applications_service_1.ApplicationsService, jobs_service_1.JobsService, email_service_1.EmailService],
     })
 ], CandidateModule);
 //# sourceMappingURL=candidate.module.js.map

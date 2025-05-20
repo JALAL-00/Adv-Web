@@ -18,6 +18,7 @@ const recruiter_service_1 = require("./recruiter.service");
 const update_profile_dto_1 = require("./dto/update-profile.dto");
 const create_job_dto_1 = require("./dto/create-job.dto");
 const update_job_dto_1 = require("./dto/update-job.dto");
+const delete_job_dto_1 = require("./dto/delete-job.dto");
 const search_candidate_dto_1 = require("./dto/search-candidate.dto");
 const send_message_dto_1 = require("./dto/send-message.dto");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
@@ -28,17 +29,20 @@ let RecruiterController = class RecruiterController {
     constructor(recruiterService) {
         this.recruiterService = recruiterService;
     }
+    getProfile(req) {
+        return this.recruiterService.getProfile(req.user.id);
+    }
     updateProfile(req, updateProfileDto) {
         return this.recruiterService.updateProfile(req.user.id, updateProfileDto);
     }
     createJob(req, createJobDto) {
         return this.recruiterService.createJob(req.user.id, createJobDto);
     }
-    updateJob(req, id, updateJobDto) {
-        return this.recruiterService.updateJob(req.user.id, +id, updateJobDto);
+    updateJob(req, updateJobDto) {
+        return this.recruiterService.updateJob(req.user.id, updateJobDto.jobId, updateJobDto);
     }
-    deleteJob(req, id) {
-        return this.recruiterService.deleteJob(req.user.id, +id);
+    deleteJob(req, deleteJobDto) {
+        return this.recruiterService.deleteJob(req.user.id, deleteJobDto.jobId);
     }
     listJobs(req) {
         return this.recruiterService.listJobs(req.user.id);
@@ -54,6 +58,13 @@ let RecruiterController = class RecruiterController {
     }
 };
 exports.RecruiterController = RecruiterController;
+__decorate([
+    (0, common_1.Get)('profile'),
+    __param(0, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], RecruiterController.prototype, "getProfile", null);
 __decorate([
     (0, common_1.Patch)('profile'),
     __param(0, (0, common_1.Req)()),
@@ -71,21 +82,19 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], RecruiterController.prototype, "createJob", null);
 __decorate([
-    (0, common_1.Patch)('jobs/:id'),
+    (0, common_1.Patch)('jobs'),
     __param(0, (0, common_1.Req)()),
-    __param(1, (0, common_1.Param)('id')),
-    __param(2, (0, common_1.Body)()),
+    __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String, update_job_dto_1.UpdateJobDto]),
+    __metadata("design:paramtypes", [Object, update_job_dto_1.UpdateJobDto]),
     __metadata("design:returntype", void 0)
 ], RecruiterController.prototype, "updateJob", null);
 __decorate([
-    (0, common_1.Delete)('jobs/:id'),
-    (0, common_1.HttpCode)(common_1.HttpStatus.NO_CONTENT),
+    (0, common_1.Delete)('jobs'),
     __param(0, (0, common_1.Req)()),
-    __param(1, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String]),
+    __metadata("design:paramtypes", [Object, delete_job_dto_1.DeleteJobDto]),
     __metadata("design:returntype", void 0)
 ], RecruiterController.prototype, "deleteJob", null);
 __decorate([

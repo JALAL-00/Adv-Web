@@ -16,8 +16,9 @@ export declare class CandidateService {
     private jobsService;
     constructor(profileRepository: Repository<CandidateProfile>, userRepository: Repository<User>, jobRepository: Repository<Job>, applicationsService: ApplicationsService, jobsService: JobsService);
     updateProfile(userId: number, updateProfileDto: UpdateProfileDto): Promise<CandidateProfile>;
-    uploadResume(userId: number, resumePath: string): Promise<User>;
+    uploadResume(userId: number, resumePath: string): Promise<CandidateProfile>;
+    deleteResume(userId: number): Promise<CandidateProfile>;
     searchJobs(searchJobsDto: SearchJobsDto): Promise<Job[]>;
-    applyJob(userId: number, jobId: number, applyJobDto: ApplyJobDto): Promise<Application>;
+    applyJob(userId: number, applyJobDto: ApplyJobDto): Promise<Application>;
     getProfile(userId: number): Promise<CandidateProfile>;
 }

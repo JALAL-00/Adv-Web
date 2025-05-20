@@ -19,18 +19,17 @@ const typeorm_2 = require("typeorm");
 const application_entity_1 = require("./entities/application.entity");
 const user_entity_1 = require("../auth/entities/user.entity");
 const job_entity_1 = require("../jobs/entities/job.entity");
-const nodemailer = require("nodemailer");
+const email_service_1 = require("../common/email.service");
 let ApplicationsService = class ApplicationsService {
     applicationRepository;
     userRepository;
     jobRepository;
-    apply(createApplicationDto, user) {
-        throw new Error('Method not implemented.');
-    }
-    constructor(applicationRepository, userRepository, jobRepository) {
+    emailService;
+    constructor(applicationRepository, userRepository, jobRepository, emailService) {
         this.applicationRepository = applicationRepository;
         this.userRepository = userRepository;
         this.jobRepository = jobRepository;
+        this.emailService = emailService;
     }
     async create(userId, jobId, resume, createApplicationDto) {
         const candidate = await this.userRepository.findOne({ where: { id: userId } });
@@ -61,19 +60,21 @@ let ApplicationsService = class ApplicationsService {
             relations: ['job', 'candidate'],
         });
     }
+    async updateStatus(applicationId, status) {
+        const application = await this.applicationRepository.findOne({
+            where: { id: applicationId },
+            relations: ['candidate', 'job'],
+        });
+        if (!application) {
+            throw new common_1.NotFoundException('Application not found');
+        }
+        application.status = status;
+        const updatedApplication = await this.applicationRepository.save(application);
+        await this.emailService.sendMail(application.candidate.email, `Application Status Update for ${application.job.title}`, `Your application for "${application.job.title}" has been updated to "${status}".`);
+        return updatedApplication;
+    }
     async notifyRecruiter(recruiterEmail, jobTitle, candidateEmail) {
-        const transporter = nodemailer.createTransport({
-            service: 'Gmail',
-            auth: {
-                user: process.env.GMAIL_USER,
-                pass: process.env.GMAIL_PASS,
-            },
-        });
-        await transporter.sendMail({
-            to: recruiterEmail,
-            subject: `New Application for ${jobTitle}`,
-            text: `A candidate (${candidateEmail}) has applied for your job "${jobTitle}".`,
-        });
+        await this.emailService.sendMail(recruiterEmail, `New Application for ${jobTitle}`, `A candidate (${candidateEmail}) has applied for your job "${jobTitle}".`);
     }
 };
 exports.ApplicationsService = ApplicationsService;
@@ -84,6 +85,7 @@ exports.ApplicationsService = ApplicationsService = __decorate([
     __param(2, (0, typeorm_1.InjectRepository)(job_entity_1.Job)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         typeorm_2.Repository,
-        typeorm_2.Repository])
+        typeorm_2.Repository,
+        email_service_1.EmailService])
 ], ApplicationsService);
 //# sourceMappingURL=applications.service.js.map

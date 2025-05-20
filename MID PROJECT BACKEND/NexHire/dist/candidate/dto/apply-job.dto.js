@@ -12,9 +12,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ApplyJobDto = void 0;
 const class_validator_1 = require("class-validator");
 class ApplyJobDto {
+    jobId;
     coverLetter;
 }
 exports.ApplyJobDto = ApplyJobDto;
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], ApplyJobDto.prototype, "jobId", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),

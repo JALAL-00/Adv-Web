@@ -10,6 +10,7 @@ import { ApplyJobDto } from './dto/apply-job.dto';
 import { ApplicationsService } from '../applications/applications.service';
 import { JobsService } from '../jobs/jobs.service';
 import { Application } from '../applications/entities/application.entity';
+import * as fs from 'fs/promises';
 
 @Injectable()
 export class CandidateService {
@@ -38,26 +39,57 @@ export class CandidateService {
     return this.profileRepository.save(profile);
   }
 
-  async uploadResume(userId: number, resumePath: string): Promise<User> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) throw new NotFoundException('User not found');
-    user.resume = resumePath;
-    return this.userRepository.save(user);
+  async uploadResume(userId: number, resumePath: string): Promise<CandidateProfile> {
+    let profile = await this.profileRepository.findOne({ where: { user: { id: userId } } });
+    if (!profile) {
+      const user = await this.userRepository.findOne({ where: { id: userId } });
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+      profile = this.profileRepository.create({ user, resume: resumePath });
+    } else {
+      // Delete old resume if it exists
+      if (profile.resume) {
+        try {
+          await fs.unlink(profile.resume);
+        } catch (error) {
+          console.error(`Failed to delete old resume at ${profile.resume}: ${error.message}`);
+        }
+      }
+      profile.resume = resumePath;
+    }
+    return this.profileRepository.save(profile);
+  }
+
+  async deleteResume(userId: number): Promise<CandidateProfile> {
+    const profile = await this.profileRepository.findOne({ where: { user: { id: userId } } });
+    if (!profile) {
+      throw new NotFoundException('Profile not found');
+    }
+    if (!profile.resume) {
+      throw new BadRequestException('No resume to delete');
+    }
+    try {
+      await fs.unlink(profile.resume);
+    } catch (error) {
+      console.error(`Failed to delete resume at ${profile.resume}: ${error.message}`);
+      throw new BadRequestException('Failed to delete resume file');
+    }
+    profile.resume = '';
+    return this.profileRepository.save(profile);
   }
 
   async searchJobs(searchJobsDto: SearchJobsDto): Promise<Job[]> {
-    // Simulated web scraping: In a real app, this would fetch external job listings
     console.log('Simulating web scraping for jobs...');
     return this.jobsService.findAll(searchJobsDto);
   }
 
-  async applyJob(userId: number, jobId: number, applyJobDto: ApplyJobDto): Promise<Application> {
+  async applyJob(userId: number, applyJobDto: ApplyJobDto): Promise<Application> {
     const profile = await this.profileRepository.findOne({ where: { user: { id: userId } } });
     if (!profile || !profile.resume) {
       throw new BadRequestException('Profile or resume not found');
     }
-    const applicationDto = { ...applyJobDto, jobId };
-    return this.applicationsService.create(userId, jobId, profile.resume, applicationDto);
+    return this.applicationsService.create(userId, applyJobDto.jobId, profile.resume, applyJobDto);
   }
 
   async getProfile(userId: number): Promise<CandidateProfile> {

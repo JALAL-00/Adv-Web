@@ -4,6 +4,7 @@ import { Job } from '../../jobs/entities/job.entity';
 import { Application } from '../../applications/entities/application.entity';
 import { Message } from '../../recruiter/entities/message.entity';
 import { ScrapedJob } from '../../scraper/entities/scraped-job.entity';
+import { RecruiterProfile } from '../../recruiter/entities/recruiter-profile.entity';
 
 export enum UserRole {
   RECRUITER = 'recruiter',
@@ -31,22 +32,25 @@ export class User {
   companyName: string;
 
   @Column({ nullable: true })
-  companyWebsite: string;
-
-  @Column({ nullable: true })
   phone: string;
 
   @Column({ type: 'enum', enum: UserRole })
   role: UserRole;
 
-  @Column({ type: 'varchar', nullable: true }) // Explicitly specify varchar for string
+  @Column({ type: 'varchar', nullable: true })
   resetPasswordToken: string | null;
 
-  @Column({ type: 'timestamp', nullable: true }) // Explicitly specify timestamp for Date
+  @Column({ type: 'timestamp', nullable: true })
   resetPasswordExpires: Date | null;
+
+  @Column({ nullable: true })
+  resume: string;
 
   @OneToOne(() => CandidateProfile, (profile) => profile.user, { cascade: true })
   candidateProfile: CandidateProfile;
+
+  @OneToOne(() => RecruiterProfile, (recruiterProfile) => recruiterProfile.user, { cascade: true })
+  recruiterProfile: RecruiterProfile;
 
   @OneToMany(() => Job, (job) => job.recruiter, { cascade: true })
   jobs: Job[];
@@ -62,6 +66,4 @@ export class User {
 
   @OneToMany(() => ScrapedJob, (scrapedJob) => scrapedJob.user)
   scrapedJobs: ScrapedJob[];
-  resume: string;
-  
 }

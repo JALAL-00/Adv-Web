@@ -6,8 +6,8 @@ export class CandidateProfile {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @OneToOne(() => User, (user) => user.candidateProfile)
-  @JoinColumn()
+  @OneToOne(() => User, (user) => user.candidateProfile, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'userId' })
   user: User;
 
   @Column('simple-array', { nullable: true })

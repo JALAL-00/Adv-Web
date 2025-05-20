@@ -11,21 +11,24 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.EmailService = void 0;
 const common_1 = require("@nestjs/common");
+const config_1 = require("@nestjs/config");
 const nodemailer = require("nodemailer");
 let EmailService = class EmailService {
+    configService;
     transporter;
-    constructor() {
+    constructor(configService) {
+        this.configService = configService;
         this.transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,
+                user: this.configService.get('GMAIL_USER'),
+                pass: this.configService.get('GMAIL_PASS'),
             },
         });
     }
     async sendMail(to, subject, text) {
         const mailOptions = {
-            from: process.env.EMAIL_USER,
+            from: this.configService.get('GMAIL_USER'),
             to,
             subject,
             text,
@@ -54,6 +57,6 @@ let EmailService = class EmailService {
 exports.EmailService = EmailService;
 exports.EmailService = EmailService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [])
+    __metadata("design:paramtypes", [config_1.ConfigService])
 ], EmailService);
 //# sourceMappingURL=email.service.js.map

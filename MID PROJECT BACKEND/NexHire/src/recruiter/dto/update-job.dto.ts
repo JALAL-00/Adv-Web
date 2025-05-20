@@ -1,6 +1,9 @@
-import { IsString, IsArray, IsOptional } from 'class-validator';
+import { IsString, IsNumber, IsOptional } from 'class-validator';
 
 export class UpdateJobDto {
+  @IsNumber()
+  jobId: number;
+
   @IsString()
   @IsOptional()
   title?: string;
@@ -17,7 +20,7 @@ export class UpdateJobDto {
   @IsOptional()
   salary?: string;
 
-  @IsArray()
+  @IsString({ each: true })
   @IsOptional()
   skills?: string[];
 

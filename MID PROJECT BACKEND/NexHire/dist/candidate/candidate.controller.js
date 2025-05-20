@@ -42,11 +42,15 @@ let CandidateController = class CandidateController {
         console.log(`Uploaded file: ${file.path}`);
         return this.candidateService.uploadResume(req.user.id, file.path);
     }
+    async deleteResume(req) {
+        const profile = await this.candidateService.deleteResume(req.user.id);
+        return { message: 'Resume deleted successfully', resume: profile.resume };
+    }
     searchJobs(searchJobsDto) {
         return this.candidateService.searchJobs(searchJobsDto);
     }
-    applyJob(req, id, applyJobDto) {
-        return this.candidateService.applyJob(req.user.id, +id, applyJobDto);
+    applyJob(req, applyJobDto) {
+        return this.candidateService.applyJob(req.user.id, applyJobDto);
     }
 };
 exports.CandidateController = CandidateController;
@@ -69,7 +73,7 @@ __decorate([
     (0, common_1.Post)('resume'),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('resume', {
         storage: (0, multer_1.diskStorage)({
-            destination: './uploads/resumes',
+            destination: './Uploads/resumes',
             filename: (req, file, cb) => {
                 const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
                 const ext = (0, path_1.extname)(file.originalname);
@@ -92,6 +96,13 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], CandidateController.prototype, "uploadResume", null);
 __decorate([
+    (0, common_1.Delete)('resume'),
+    __param(0, (0, common_1.Req)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], CandidateController.prototype, "deleteResume", null);
+__decorate([
     (0, common_1.Post)('search-jobs'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -99,12 +110,11 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], CandidateController.prototype, "searchJobs", null);
 __decorate([
-    (0, common_1.Post)('jobs/:id/apply'),
+    (0, common_1.Post)('apply-job'),
     __param(0, (0, common_1.Req)()),
-    __param(1, (0, common_1.Param)('id')),
-    __param(2, (0, common_1.Body)()),
+    __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String, apply_job_dto_1.ApplyJobDto]),
+    __metadata("design:paramtypes", [Object, apply_job_dto_1.ApplyJobDto]),
     __metadata("design:returntype", void 0)
 ], CandidateController.prototype, "applyJob", null);
 exports.CandidateController = CandidateController = __decorate([

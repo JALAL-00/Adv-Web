@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Req, Body, UseGuards, UploadedFile, UseInterceptors, BadRequestException, SetMetadata, Param } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Req, Body, UseGuards, UploadedFile, UseInterceptors, BadRequestException, SetMetadata } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CandidateService } from './candidate.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -30,7 +30,7 @@ export class CandidateController {
   @UseInterceptors(
     FileInterceptor('resume', {
       storage: diskStorage({
-        destination: './uploads/resumes', // Changed to lowercase
+        destination: './Uploads/resumes',
         filename: (req, file, cb) => {
           const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
           const ext = extname(file.originalname);
@@ -44,15 +44,21 @@ export class CandidateController {
         }
         cb(null, true);
       },
-      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+      limits: { fileSize: 5 * 1024 * 1024 },
     }),
   )
   async uploadResume(@Req() req, @UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
-    console.log(`Uploaded file: ${file.path}`); // Debug log
+    console.log(`Uploaded file: ${file.path}`);
     return this.candidateService.uploadResume(req.user.id, file.path);
+  }
+
+  @Delete('resume')
+  async deleteResume(@Req() req) {
+    const profile = await this.candidateService.deleteResume(req.user.id);
+    return { message: 'Resume deleted successfully', resume: profile.resume };
   }
 
   @Post('search-jobs')
@@ -60,8 +66,8 @@ export class CandidateController {
     return this.candidateService.searchJobs(searchJobsDto);
   }
 
-  @Post('jobs/:id/apply')
-  applyJob(@Req() req, @Param('id') id: string, @Body() applyJobDto: ApplyJobDto) {
-    return this.candidateService.applyJob(req.user.id, +id, applyJobDto);
+  @Post('apply-job')
+  applyJob(@Req() req, @Body() applyJobDto: ApplyJobDto) {
+    return this.candidateService.applyJob(req.user.id, applyJobDto);
   }
 }

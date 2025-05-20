@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpCode, HttpStatus, Delete, UseGuards, Req, SetMetadata, BadRequestException, Request } from '@nestjs/common'; 
+import { Controller, Post, Body, HttpCode, HttpStatus, Delete, UseGuards, Req, SetMetadata } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -7,6 +7,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RoleGuard } from './guards/role.guard';
 import { UserRole } from './entities/user.entity';
+import { BadRequestException } from '@nestjs/common';
 
 @Controller('auth')
 export class AuthController {
@@ -14,13 +15,19 @@ export class AuthController {
 
   @Post('register')
   async register(@Body() registerDto: RegisterDto) {
-    return this.authService.register(registerDto);
+    const user = await this.authService.register(registerDto);
+    const { password, ...safeUser } = user;
+    return safeUser;
   }
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+    const user = await this.authService.validateUser(loginDto.email, loginDto.password);
+    if (!user) {
+      throw new BadRequestException('Invalid credentials');
+    }
+    return this.authService.login(user);
   }
 
   @Post('forgot-password')
@@ -36,22 +43,17 @@ export class AuthController {
   }
 
   @Post('logout')
-  @UseGuards(JwtAuthGuard)
-  @HttpCode(204)
-  async logout(@Request() req) {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-    if (!token) {
-      throw new BadRequestException('No token provided');
-    }
+  @HttpCode(HttpStatus.OK)
+  async logout(@Body('token') token: string) {
     await this.authService.logout(token);
+    return { message: 'Logout successfully' };
   }
 
   @Delete('account')
   @UseGuards(JwtAuthGuard, RoleGuard)
   @SetMetadata('role', [UserRole.RECRUITER, UserRole.CANDIDATE])
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   async deleteAccount(@Req() req) {
-    await this.authService.deleteAccount(req.user.id);
+    return this.authService.deleteAccount(req.user.id);
   }
-
 }

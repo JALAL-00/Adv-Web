@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UpdateJobDto = void 0;
 const class_validator_1 = require("class-validator");
 class UpdateJobDto {
+    jobId;
     title;
     description;
     location;
@@ -20,6 +21,10 @@ class UpdateJobDto {
     experience;
 }
 exports.UpdateJobDto = UpdateJobDto;
+__decorate([
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UpdateJobDto.prototype, "jobId", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
@@ -41,7 +46,7 @@ __decorate([
     __metadata("design:type", String)
 ], UpdateJobDto.prototype, "salary", void 0);
 __decorate([
-    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.IsString)({ each: true }),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", Array)
 ], UpdateJobDto.prototype, "skills", void 0);

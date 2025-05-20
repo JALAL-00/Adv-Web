@@ -27,8 +27,8 @@ __decorate([
     __metadata("design:type", Number)
 ], CandidateProfile.prototype, "id", void 0);
 __decorate([
-    (0, typeorm_1.OneToOne)(() => user_entity_1.User, (user) => user.candidateProfile),
-    (0, typeorm_1.JoinColumn)(),
+    (0, typeorm_1.OneToOne)(() => user_entity_1.User, (user) => user.candidateProfile, { onDelete: 'CASCADE' }),
+    (0, typeorm_1.JoinColumn)({ name: 'userId' }),
     __metadata("design:type", user_entity_1.User)
 ], CandidateProfile.prototype, "user", void 0);
 __decorate([

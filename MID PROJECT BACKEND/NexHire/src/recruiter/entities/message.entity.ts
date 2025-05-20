@@ -1,4 +1,3 @@
-// src/recruiter/entities/message.entity.ts
 import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
 import { User } from '../../auth/entities/user.entity';
 
@@ -16,6 +15,6 @@ export class Message {
   @ManyToOne(() => User, { nullable: true })
   receiver: User; // Null for project messages
 
-  @Column()
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 }

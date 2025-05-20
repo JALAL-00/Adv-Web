@@ -20,6 +20,7 @@ const candidate_module_1 = require("./candidate/candidate.module");
 const scraper_module_1 = require("./scraper/scraper.module");
 const screening_module_1 = require("./screening/screening.module");
 const email_service_1 = require("./common/email.service");
+const common_module_1 = require("./common/common.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -44,6 +45,7 @@ exports.AppModule = AppModule = __decorate([
             applications_module_1.ApplicationsModule,
             scraper_module_1.ScraperModule,
             screening_module_1.ScreeningModule,
+            common_module_1.CommonModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService, email_service_1.EmailService],

@@ -12,13 +12,24 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UpdateProfileDto = void 0;
 const class_validator_1 = require("class-validator");
 class UpdateProfileDto {
+    companyName;
+    designation;
     firstName;
     lastName;
-    companyName;
-    companyWebsite;
     phone;
+    website;
 }
 exports.UpdateProfileDto = UpdateProfileDto;
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], UpdateProfileDto.prototype, "companyName", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], UpdateProfileDto.prototype, "designation", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
@@ -33,15 +44,10 @@ __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", String)
-], UpdateProfileDto.prototype, "companyName", void 0);
-__decorate([
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", String)
-], UpdateProfileDto.prototype, "companyWebsite", void 0);
-__decorate([
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", String)
 ], UpdateProfileDto.prototype, "phone", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], UpdateProfileDto.prototype, "website", void 0);
 //# sourceMappingURL=update-profile.dto.js.map

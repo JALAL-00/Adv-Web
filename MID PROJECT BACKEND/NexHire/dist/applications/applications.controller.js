@@ -15,40 +15,42 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ApplicationsController = void 0;
 const common_1 = require("@nestjs/common");
 const applications_service_1 = require("./applications.service");
-const create_application_dto_1 = require("./dto/create-application.dto");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
+const role_guard_1 = require("../auth/guards/role.guard");
+const user_entity_1 = require("../auth/entities/user.entity");
+const update_application_status_dto_1 = require("./dto/update-application-status.dto");
 let ApplicationsController = class ApplicationsController {
     applicationsService;
     constructor(applicationsService) {
         this.applicationsService = applicationsService;
     }
-    apply(createApplicationDto, req) {
-        return this.applicationsService.apply(createApplicationDto, req.user);
-    }
     findByCandidate(req) {
         return this.applicationsService.findByCandidate(req.user.id);
+    }
+    updateStatus(updateApplicationStatusDto) {
+        return this.applicationsService.updateStatus(updateApplicationStatusDto.applicationId, updateApplicationStatusDto.status);
     }
 };
 exports.ApplicationsController = ApplicationsController;
 __decorate([
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.Post)('apply'),
-    __param(0, (0, common_1.Body)()),
-    __param(1, (0, common_1.Request)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [create_application_dto_1.CreateApplicationDto, Object]),
-    __metadata("design:returntype", void 0)
-], ApplicationsController.prototype, "apply", null);
-__decorate([
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.Get)('my-applications'),
-    __param(0, (0, common_1.Request)()),
+    (0, common_1.Get)(),
+    (0, common_1.SetMetadata)('role', user_entity_1.UserRole.CANDIDATE),
+    __param(0, (0, common_1.Req)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], ApplicationsController.prototype, "findByCandidate", null);
+__decorate([
+    (0, common_1.Patch)('status'),
+    (0, common_1.SetMetadata)('role', user_entity_1.UserRole.RECRUITER),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [update_application_status_dto_1.UpdateApplicationStatusDto]),
+    __metadata("design:returntype", void 0)
+], ApplicationsController.prototype, "updateStatus", null);
 exports.ApplicationsController = ApplicationsController = __decorate([
     (0, common_1.Controller)('applications'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, role_guard_1.RoleGuard),
     __metadata("design:paramtypes", [applications_service_1.ApplicationsService])
 ], ApplicationsController);
 //# sourceMappingURL=applications.controller.js.map
